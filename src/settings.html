@@ -1,0 +1,116 @@
+<html>
+<head>
+<meta charset='utf-8'>
+<title>Horn3t - Better Subdomain Reconnaissance</title>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+<script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+<link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<div class="ui inverted small segment">
+  <div class="ui inverted secondary pointing small menu">
+    <a class="item" href="index.html"><i class="home icon"></i>Home </a>
+    <a class="active item">Settings</a>
+    <a class="item" href="https://github.com">Contribute</a>
+  </div>
+</div>
+
+
+<div class="ui one column stackable center aligned page grid">
+	<div class="container" id="settingsContainer">
+		<div class="settingsSubcontainer">
+			<div class="ui toggle checkbox settings">
+				<input type="checkbox" name="reload">
+				<label>Reload Subdomains</label>
+			</div>
+		</div>
+		
+		<div class="settingsSubcontainer">	
+			<div class="ui toggle checkbox settings">
+				<input type="checkbox" name="https">
+				<label>HTTPS Default</label>
+			</div>
+		</div>
+		
+		<div class="settingsSubcontainer">
+			<div class="ui icon input">
+				<input type="text" placeholder="Include Subdomain..." id="include">
+				<i class="search link icon" id="runInclude"></i>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+$( document ).ready(function() {
+	if(localStorage.getItem("reload") === "true"){
+		$("input[name=reload]").prop("checked",true)
+	}
+	
+	if(localStorage.getItem("https") === "true"){
+		$("input[name=https]").prop("checked",true)
+	}
+	
+	
+	$('input[name=reload]').change(function(){
+		if($(this).is(':checked')){
+			localStorage.setItem("reload","true")
+		} else {
+			localStorage.setItem("reload","false")
+		}
+	});
+	
+	$('input[name=https]').change(function(){
+		if($(this).is(':checked')){
+			localStorage.setItem("https","true")
+		} else {
+			localStorage.setItem("https","false")
+		}
+	});
+
+	
+	
+	/*Request a single site search (on click)*/
+	$("#runInclude").click(function(e){
+		site = $("#include").val();
+		if(localStorage.getItem("https") === "true"){
+			var ssl = true;
+		} else {
+			var ssl = false;
+		}
+		$.ajax({
+			url : "http://localhost:8080/include?site=" + site + "&ssl=" + ssl,
+			success: function (data) {
+				console.log("Sent Request");
+			}, error: function (data) {
+				alert("Error sending request! Make sure the service is running!");
+			}
+		});
+	});
+	
+	/*Requesting a single site search*/
+	$(document).on('keypress',function(e) {
+		if(e.which == 13) {
+			site = $("#include").val();
+			if(localStorage.getItem("https") === "true"){
+				var ssl = true;
+			} else {
+				var ssl = false;
+			}
+			$.ajax({
+				url : "http://localhost:8080/include?site=" + site + "&ssl=" + ssl,
+				success: function (data) {
+					console.log("Sent Request");
+				}, error: function (data) {
+					alert("Error sending request! Make sure the service is running!");
+				}
+			});
+		}
+	});
+	
+});
+</script>
+
+</body>
+</html>

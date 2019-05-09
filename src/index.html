@@ -1,0 +1,240 @@
+<html>
+<head>
+<meta charset='utf-8'>
+<title>Horn3t - Better Subdomain Reconnaissance</title>
+
+<script src="https://code.jquery.com/jquery-3.1.1.min.js" crossorigin="anonymous"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+<script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
+
+<link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+
+<body>
+<div class="ui inverted small segment">
+  <div class="ui inverted secondary pointing small menu">
+    <a class="active item"><i class="home icon"></i>Home </a>
+    <a class="item" href="settings.html">Settings</a>
+    <a class="item" href="https://github.com/JannisKirschner/Horn3t">Contribute</a>
+  </div>
+</div>
+
+
+
+<div class="ui one column stackable center aligned page grid">
+   <div class="column twelve wide">
+		<img class="logoImg" src="assets/logo.svg" />
+       <div class="ui labeled icon input">
+	   <div class="ui label noselect" id="protocolSpecifier">
+			http://
+		</div>
+		<input id="run" type="text" placeholder="Domain">
+		<i class="search link icon" id="runSearch"></i>
+		</div>
+   </div>
+   
+   <div class='container' id='mainContainer'>
+	<div class='subcontainer' id='cntr_100' style="display:none;">
+	<h1 class="noselect clickablehttpstatuscode" id="title_100">100:</h1>
+	</div>
+	<div class='subcontainer' id='cntr_200' style="display:none;">
+	<h1 class="noselect clickablehttpstatuscode" id="title_200">200:</h1>
+	</div>
+	<div class='subcontainer' id='cntr_300' style="display:none;">
+	<h1 class="noselect clickablehttpstatuscode" id="title_300">300:</h1>
+	</div>
+	<div class='subcontainer' id='cntr_400' style="display:none;">
+	<h1 class="noselect clickablehttpstatuscode" id="title_400">400:</h1>
+	</div>
+	<div class='subcontainer' id='cntr_500' style="display:none;">
+	<h1 class="noselect clickablehttpstatuscode" id="title_500">500:</h1>
+	</div>
+   </div>
+</div>
+
+
+<p align="center">Made with &#x2764; by <a href="http://twitter.com/xorkiwi">Kiwi</a></p>
+
+
+<script>
+$( document ).ready(function() {
+
+/*Cleans view*/
+function cleanSubdomains(){
+	$("#title_100").siblings().remove();
+	$("#title_200").siblings().remove();
+	$("#title_300").siblings().remove();
+	$("#title_400").siblings().remove();
+	$("#title_500").siblings().remove();
+	hideUnused();
+}
+
+/*Requests subdomain to be enumerated*/
+function leaseSubdomains(domain){
+	$.ajax({
+		url : "shots/"+domain,
+		error: function(data) {
+			alert("New Domain - Indexing might take a while");
+			if($("#protocolSpecifier")[0].innerText === "http://"){
+				var ssl = false;
+			} else {
+				var ssl = true;
+			}
+			$.ajax({
+				url : "http://localhost:8080/?site=" + domain + "&ssl=" + ssl,
+				success: function (data) {
+					console.log("Sent Request");
+				}, error: function (data) {
+					alert("Error sending request! Make sure the service is running!");
+				}
+			});
+		}, 
+		success: function(data) {
+			if(localStorage.getItem("reload") === "true"){
+				alert("Reindexing Domain - Indexing might take a while");
+				if($("#protocolSpecifier")[0].innerText === "http://"){
+					var ssl = false;
+				} else {
+					var ssl = true;
+				}
+				$.ajax({
+					url : "http://localhost:8080/?site=" + domain + "&ssl=" + ssl,
+					success: function (data) {
+						console.log("Sent Request");
+					}, error: function (data) {
+						alert("Error sending request! Make sure the service is running!");
+					}
+				});
+			}
+		},
+		async: false
+	});
+}
+
+
+/*Reloads view according to images of subdomains*/
+duplicateLock = []
+function reloadSubdomains(dir){
+	var dirpath = "shots/" + dir;
+
+	$.ajax({
+		url : dirpath,
+		success: function (data) {
+			$(data).find("a").attr("href", function (i, val) {
+				if( val.match(/\.(jpe?g|png|gif)$/) ) { 
+					var url = val.substring(0,val.length-8)
+					
+					if(!duplicateLock.includes(url)){
+						var status_code = val.substring(val.length-7,val.length-4)
+
+						status_code = Math.floor(status_code / 100) * 100;
+						$("#cntr_"+status_code).append( "<div class='imageblock'><img src='"+ dirpath + "/" + val +"' /><br/><a target='_blank' rel='noopener noreferrer' href='http://"+ url +"'>"+url+"</a></div>" );
+						duplicateLock.push(url)
+					}
+				} 
+			});
+		}
+	});
+};
+
+
+/*Initiates a subdomain reload*/
+function reloadSubdomains_handler(){
+	domain = $("#run").val();
+	leaseSubdomains(domain);
+	reloadSubdomains(domain);
+	console.log("[*] Pushed subdomain")
+}
+
+/*Service which pulls domain from session storage and updates accordingly*/
+function reloadSubdomains_service(){
+	domain = sessionStorage.getItem("current");
+	if(domain !== null){
+		reloadSubdomains(domain);
+		console.log("[*] Pulled subdomains");
+	}
+}
+
+/*Hides all unused http containers*/
+function hideUnused(){
+	$(".subcontainer").each(function(index){
+		if(this.childElementCount < 2){
+			$(this).fadeOut(1);
+		} else{
+			$(this).fadeIn(1);
+		}
+	});
+};
+
+/*Switches protocol between http and https*/
+function changeProtocol(){
+	if($("#protocolSpecifier")[0].innerText === "http://"){
+		$("#protocolSpecifier")[0].innerText = "https://"
+	} else{
+		$("#protocolSpecifier")[0].innerText = "http://"
+	}
+};
+
+/*Folds and unfolds http code pages*/
+function switchSiblings(index){
+	if($(index).siblings().is(":visible")){
+		$(index).siblings().fadeOut(100);
+	} else {
+		$(index).siblings().fadeIn(100);
+	}
+};
+
+
+/*Makes status codes foldable*/
+$(".clickablehttpstatuscode").click(function(e) {
+	switchSiblings("#"+$(this).attr('id'));
+});
+
+/*Requesting a domain search*/
+$(document).on('keypress',function(e) {
+    if(e.which == 13) {
+		domain = $("#run").val();
+		cleanSubdomains();
+		sessionStorage.setItem("current",domain);
+		reloadSubdomains_handler(domain);
+    }
+});
+
+/*Requests a domain search (click event)*/
+$("#runSearch").click(function(e){
+	domain = $("#run").val();
+	cleanSubdomains();
+	sessionStorage.setItem("current",domain);
+	reloadSubdomains_handler(domain);
+});
+
+
+/*Changes makes http(s) togglable*/
+$("#protocolSpecifier").click(function(e){
+	changeProtocol()
+});
+
+
+
+/*Removes updated to start with a clean page*/
+$(window).on('beforeunload', function() {
+  sessionStorage.removeItem("current");
+});
+
+/*Changes to default https if setting is set*/
+if(localStorage.getItem("https") === "true"){
+	changeProtocol();
+}
+
+
+/*Sets intervals to update subdomains and hide unused http codes*/
+setInterval(hideUnused,1000);
+setInterval(reloadSubdomains_service,500);
+
+
+});
+
+</script>
+
+</body>
+</html>
