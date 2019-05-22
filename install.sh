@@ -17,6 +17,3 @@ echo "[*] Setup complete"
 docker ps
 
 echo "[*] Access webinterface under http://localhost:1337"
-
-
-
